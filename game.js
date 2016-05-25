@@ -6,7 +6,9 @@ function runGame(){
   if(position >= 600){
     block.parentNode.removeChild(block);
   }
-  block.style.top = position + 1 + "px";
+  else{
+    block.style.top = position + 1 + "px";
+  }
 
   setTimeout(function(){
     runGame();
