@@ -10,92 +10,119 @@ var BLOCK_DROP_REFRESH = 5;
 var BLOCK_DROP_SPEED = 1;
 var MOVE_SPEED = 1;
 var MOVE_REFRESH = 3;
-var MIN_GEN_RATE = 1.5;
-var LEVEL_TIME = 20;
+var MIN_GEN_RATE = 1;
+var MAX_GEN_RATE = 3;
+var LEVEL_GEN_NUM = 20; //blocks per level
 
 var gameRactive;
 
 function runGame(){
   var spawnTimes = calcSpawns();
+  runLevel(spawnTimes, 0);
+}
+
+function runLevel(spawns, i){
+  if(i == spawns.length){
+    console.log('NEW LEVEL!');
+    gameRactive.set('divisor', gameRactive.get('divisor') + 1);
+    console.log('new divisor: ' + gameRactive.get('divisor'));
+    var spawnTimes = calcSpawns();
+    runLevel(spawnTimes, 0);
+    return;
+  }
+  setTimeout(function(){
+    console.log("SPAWN INDEX: " + i);
+    var blocks = gameRactive.get('blocks');
+    var blockIndex = gameRactive.get('blocknum');
+    blocks.push({
+      'id': blockIndex,
+      'value': 1
+    });
+    console.log(blocks);
+    // console.log('index: ' + blockIndex);
+    gameRactive.set('blocknum', blockIndex+1);
+    var blockElement = document.getElementById("block-"+blockIndex);
+    var offset = Math.floor(Math.random() * 480);
+    blockElement.style.left = offset + "px";
+
+    dropBlock(blockIndex);
+    runLevel(spawns, i+1);
+  }, spawns[i]);
 }
 
 function calcSpawns(){
-  var nums = [];
-  for(var i = 0; i < 19; i++){
-    var n = Math.random()*20;
+  var spawns = [];
+  for(var i = 0; i < LEVEL_GEN_NUM; i++){
+    var n = Math.random()*MAX_GEN_RATE;
     if(n < MIN_GEN_RATE){
       n += MIN_GEN_RATE;
     }
-    nums.push(n);
+    spawns.push(n*1000);
   }
-
-  nums.sort(function(a,b){
-    return a-b;
-  });
-  console.log(nums);
-  var spawns = [];
-  for(var i = 0; i < nums.length; i++){
-    if(i == 0){
-      spawns.push(nums[0] - 0);
-    }
-    else{
-      spawns.push(nums[i] - nums[i-1]);
-    }
-  }
-  spawns.push(LEVEL_TIME - nums[nums.length-1]);
-  console.log(spawns.length);
-  console.log(spawns);
-  var sum = 0;
-  for(var i = 0; i < spawns.length; i++){
-    sum += spawns[i];
-  }
-  console.log(sum);
   return spawns;
 }
 
 function checkCollisions(){
-  var block = document.getElementById("block-1");
-  if(block){
-    var player = document.getElementById("player-block");
-    var blockRect = block.getBoundingClientRect();
-    var bl = blockRect.left;
-    var br = blockRect.right;
-    var bt = blockRect.top;
-    var bb = blockRect.bottom;
+  var blocks = gameRactive.get('blocks');
+  var gameBlocks = [];
+  for(var i = 0; i < blocks.length; i++){
+    gameBlocks.push(blocks[i]);
+  }
+  for(var i = 0; i < gameBlocks.length; i++){
+    var block = document.getElementById("block-" + gameBlocks[i].id);
+    if(block){
+      var player = document.getElementById("player-block");
+      var blockRect = block.getBoundingClientRect();
+      var bl = blockRect.left;
+      var br = blockRect.right;
+      var bt = blockRect.top;
+      var bb = blockRect.bottom;
 
-    var playerRect = player.getBoundingClientRect();
-    var pl = playerRect.left;
-    var pr = playerRect.right;
-    var pt = playerRect.top;
-    var pb = playerRect.bottom;
+      var playerRect = player.getBoundingClientRect();
+      var pl = playerRect.left;
+      var pr = playerRect.right;
+      var pt = playerRect.top;
+      var pb = playerRect.bottom;
 
-    // console.log(blockRect);
-    // console.log(playerRect);
-    // console.log('checking');
-    if((bl < pr && bl > pl || br < pr && br > pl) &&
-        (bt > pt && bt < pb || bb > pt && bb < pb)){
-      // console.log("COLLIDE");
-      // $('#block-1').fadeOut(100);
-      gameRactive.set('score', gameRactive.get('score') + 1);
-      block.parentNode.removeChild(block);
-      $('#player-block').animate({width:"30px", height:"30px"},50,"linear",function(){
-        $('#player-block').animate({width:"25px", height:"25px"},50);
-      });
+      // console.log(blockRect);
+      // console.log(playerRect);
+      // console.log('checking');
+      if((bl < pr && bl > pl || br < pr && br > pl) &&
+          (bt > pt && bt < pb || bb > pt && bb < pb)){
+        // console.log("COLLIDE");
+        // $('#block-1').fadeOut(100);
+        gameRactive.set('score', gameRactive.get('score') + 1);
+        blocks.splice(i, 1);
+
+        $('#player-block').animate({width:"30px", height:"30px"},50,"linear",function(){
+          $('#player-block').animate({width:"25px", height:"25px"},50);
+        });
+      }
     }
   }
+
   setTimeout(function(){
     checkCollisions();
   }, COLLISION_REFRESH);
 }
 
-function dropBlocks(){
-  var block = document.getElementById("block-1");
+function dropBlock(index){
+  var block = document.getElementById("block-" + index);
+  // console.log(index);
   if(block){
     var position = block.style.top;
     position = parseInt(position.substring(0,position.length-2));
     // console.log(position);
     if(position >= 600){
-      block.parentNode.removeChild(block);
+      var blocks = gameRactive.get('blocks');
+      var blockIndex = -1;
+      for(var i = 0; i < blocks.length; i++){
+        if(blocks[i].id == index){
+          blockIndex = i;
+        }
+      }
+      blocks.splice(blockIndex, 1);
+      return;
     }
     else{
       block.style.top = position + BLOCK_DROP_SPEED + "px";
@@ -103,7 +130,7 @@ function dropBlocks(){
   }
 
   setTimeout(function(){
-    dropBlocks();
+    dropBlock(index);
   }, BLOCK_DROP_REFRESH);
 }
 
@@ -132,7 +159,9 @@ $(document).ready(function(){
       keydown: 'none',
       moving: false,
       score: 0,
-      divisor: 2
+      divisor: 2,
+      blocks: [],
+      blocknum: 0
     }
   });
 
@@ -162,7 +191,7 @@ $(document).ready(function(){
   });
 
   handleMotion();
-  dropBlocks();
+  // dropBlock();
   checkCollisions();
   runGame();
 });
