@@ -9,13 +9,22 @@
       <div id="title">
         <strong>(In)</strong>divisible
       </div>
-      <div id="game-board">
-        <div id="block-1" class="falling-block" style="top:-24px; left:0px;">
-          <div class="falling-block-text">
-            +1
+      <div id="game-area"></div>
+      <script id="template" type="type/ractive">
+        <div id="game-board">
+          <div id="player-block" style="left:0px;"></div>
+          {{#each blocks}}
+          <div id="block-{{id}}" class="falling-block" style="top:-24px; left:0px;">
+            <div class="falling-block-text">
+              +1
+            </div>
           </div>
+          {{/each}}
         </div>
-      </div>
+        <div id="buffer" align="center">
+          <div id="score" style="color:{{score%divisor == 0 ? 'green' : 'red'}}">{{score}}</div>
+        </div>
+      </script>
     </div>
   </body>
 </html>

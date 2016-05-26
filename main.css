@@ -16,6 +16,17 @@ body {
   position:relative;
 }
 
+#player-block {
+  width:25px;
+  height:25px;
+  border-radius:5px;
+  background-color: blue;
+  border:1px solid lightblue;
+  position:relative;
+  z-index:999;
+  top:540px;
+}
+
 #title {
   font-size:24px;
   background-color:#3f3f3f;
@@ -24,6 +35,21 @@ body {
   height:36px;
   position:relative;
   z-index:999;
+}
+
+#buffer{
+  background-color: #3f3f3f;
+  height:60px;
+  width:100%;
+  position:relative;
+  z-index:999;
+}
+
+#score {
+  font-size:24px;
+  font-weight:600;
+  color:white;
+  padding-top:10px;
 }
 
 .falling-block{
