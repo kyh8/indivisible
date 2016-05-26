@@ -39,10 +39,17 @@ body {
 
 #buffer{
   background-color: #3f3f3f;
-  height:36px;
+  height:60px;
   width:100%;
   position:relative;
   z-index:999;
+}
+
+#score {
+  font-size:24px;
+  font-weight:600;
+  color:white;
+  margin-top:10px;
 }
 
 .falling-block{
