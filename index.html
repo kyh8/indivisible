@@ -12,11 +12,21 @@
       <div id="game-area"></div>
       <script id="template" type="type/ractive">
         <div id="game-board">
+          <div align="center" id="lose-screen" style="{{lost ? '' : 'display:none'}}">
+            <div id="display">
+              <div id="score-display-label">Your Score:</div>
+              <div id="score-display">{{score}}</div>
+              <div id="retry">
+                <img id="retry-image" src="retry.png" width="70" height="70">
+              </div>
+            </div>
+          </div>
+          <div id="level" style="top:-12px;"></div>
           <div id="player-block" style="left:0px;"></div>
           {{#each blocks}}
           <div id="block-{{id}}" class="falling-block" style="top:-24px; left:0px;">
             <div class="falling-block-text">
-              +1
+              +{{value}}
             </div>
           </div>
           {{/each}}
