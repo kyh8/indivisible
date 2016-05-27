@@ -12,91 +12,106 @@ var MOVE_SPEED = 1;
 var MOVE_REFRESH = 3;
 var MIN_GEN_RATE = 1;
 var MAX_GEN_RATE = 3;
-var LEVEL_GEN_NUM = 20; //blocks per level
+var LEVEL_GEN_NUM = 10; //blocks per level
+var GAME_BOARD_HEIGHT = 500;
+var PLAYER_SIZE = 25;
 
 var gameRactive;
+var levelTimer;
 
-function runGame(){
-  var spawnTimes = calcSpawns();
-  runLevel(spawnTimes, 0);
+function startGame(){
+  handleMotion();
+  checkCollisions();
+  runLevel();
 }
 
-function runLevel(spawns, i){
-  if(i == spawns.length){
-    console.log('NEW LEVEL!');
-    gameRactive.set('divisor', gameRactive.get('divisor') + 1);
-    console.log('new divisor: ' + gameRactive.get('divisor'));
-    var spawnTimes = calcSpawns();
-    runLevel(spawnTimes, 0);
+function runLevel(){
+  if(gameRactive.get('lost')){
     return;
   }
-  setTimeout(function(){
-    console.log("SPAWN INDEX: " + i);
+
+  var timeout = 5;
+  if(!gameRactive.get('paused')){
+    timeout = Math.random()*MAX_GEN_RATE;
+    if(timeout < MIN_GEN_RATE){
+      timeout += MIN_GEN_RATE;
+    }
+
+    timeout = timeout * 1000;
+
     var blocks = gameRactive.get('blocks');
     var blockIndex = gameRactive.get('blocknum');
     blocks.push({
       'id': blockIndex,
       'value': 1
     });
-    console.log(blocks);
+    // console.log(blocks);
     // console.log('index: ' + blockIndex);
     gameRactive.set('blocknum', blockIndex+1);
     var blockElement = document.getElementById("block-"+blockIndex);
-    var offset = Math.floor(Math.random() * 480);
+    var offset = Math.floor(Math.random() * 460);
     blockElement.style.left = offset + "px";
-
     dropBlock(blockIndex);
-    runLevel(spawns, i+1);
-  }, spawns[i]);
-}
 
-function calcSpawns(){
-  var spawns = [];
-  for(var i = 0; i < LEVEL_GEN_NUM; i++){
-    var n = Math.random()*MAX_GEN_RATE;
-    if(n < MIN_GEN_RATE){
-      n += MIN_GEN_RATE;
+    var index = gameRactive.get('levelBlockIndex');
+    console.log('index:' + (index+1));
+
+    if(index == LEVEL_GEN_NUM-1){
+      console.log('NEW LEVEL!');
+      dropLine();
+      gameRactive.set('levelBlockIndex', 0);
     }
-    spawns.push(n*1000);
+    else{
+      gameRactive.set('levelBlockIndex', gameRactive.get('levelBlockIndex') + 1);
+    }
   }
-  return spawns;
+
+  levelTimer = setTimeout(function(){
+    runLevel();
+  }, timeout);
 }
 
 function checkCollisions(){
-  var blocks = gameRactive.get('blocks');
-  var gameBlocks = [];
-  for(var i = 0; i < blocks.length; i++){
-    gameBlocks.push(blocks[i]);
+  if(gameRactive.get('lost')){
+    return;
   }
-  for(var i = 0; i < gameBlocks.length; i++){
-    var block = document.getElementById("block-" + gameBlocks[i].id);
-    if(block){
-      var player = document.getElementById("player-block");
-      var blockRect = block.getBoundingClientRect();
-      var bl = blockRect.left;
-      var br = blockRect.right;
-      var bt = blockRect.top;
-      var bb = blockRect.bottom;
 
-      var playerRect = player.getBoundingClientRect();
-      var pl = playerRect.left;
-      var pr = playerRect.right;
-      var pt = playerRect.top;
-      var pb = playerRect.bottom;
+  if(!gameRactive.get('paused')){
+    var blocks = gameRactive.get('blocks');
+    var gameBlocks = [];
+    for(var i = 0; i < blocks.length; i++){
+      gameBlocks.push(blocks[i]);
+    }
+    for(var i = 0; i < gameBlocks.length; i++){
+      var block = document.getElementById("block-" + gameBlocks[i].id);
+      if(block){
+        var player = document.getElementById("player-block");
+        var blockRect = block.getBoundingClientRect();
+        var bl = blockRect.left;
+        var br = blockRect.right;
+        var bt = blockRect.top;
+        var bb = blockRect.bottom;
 
-      // console.log(blockRect);
-      // console.log(playerRect);
-      // console.log('checking');
-      if((bl < pr && bl > pl || br < pr && br > pl) &&
-          (bt > pt && bt < pb || bb > pt && bb < pb)){
-        // console.log("COLLIDE");
-        // $('#block-1').fadeOut(100);
-        gameRactive.set('score', gameRactive.get('score') + 1);
-        blocks.splice(i, 1);
+        var playerRect = player.getBoundingClientRect();
+        var pl = playerRect.left;
+        var pr = playerRect.right;
+        var pt = playerRect.top;
+        var pb = playerRect.bottom;
 
-        $('#player-block').animate({width:"30px", height:"30px"},50,"linear",function(){
-          $('#player-block').animate({width:"25px", height:"25px"},50);
-        });
+        // console.log(blockRect);
+        // console.log(playerRect);
+        // console.log('checking');
+        if((pl < br && pl > bl || pr < br && pr > bl) &&
+            (pt > bt && pt < bb || pb > bt && pb < bb)){
+          // console.log("COLLIDE");
+          // $('#block-1').fadeOut(100);
+          gameRactive.set('score', gameRactive.get('score') + 1);
+          blocks.splice(i, 1);
+
+          $('#player-block').animate({width:(PLAYER_SIZE + 5) + "px", height:(PLAYER_SIZE + 5) + "px"},50,"linear",function(){
+            $('#player-block').animate({width:PLAYER_SIZE + "px", height:PLAYER_SIZE + "px"},50);
+          });
+        }
       }
     }
   }
@@ -106,26 +121,68 @@ function checkCollisions(){
   }, COLLISION_REFRESH);
 }
 
-function dropBlock(index){
-  var block = document.getElementById("block-" + index);
-  // console.log(index);
-  if(block){
-    var position = block.style.top;
+function dropLine(){
+  if(!gameRactive.get('paused')){
+    var levelLine = document.getElementById("level");
+    var position = levelLine.style.top;
     position = parseInt(position.substring(0,position.length-2));
-    // console.log(position);
-    if(position >= 600){
-      var blocks = gameRactive.get('blocks');
-      var blockIndex = -1;
-      for(var i = 0; i < blocks.length; i++){
-        if(blocks[i].id == index){
-          blockIndex = i;
-        }
-      }
-      blocks.splice(blockIndex, 1);
+
+    var level = levelLine.getBoundingClientRect();
+    var bottom = level.bottom;
+
+    var player = document.getElementById("player-block");
+    var playerBlock = player.getBoundingClientRect();
+    var playerTop = playerBlock.top;
+    var playerBottom = playerBlock.bottom;
+
+    if(position >= GAME_BOARD_HEIGHT){
+      levelLine.style.top = '-12px';
+      gameRactive.set('levelPassed', false);
+      levelLine.style.backgroundColor = 'red';
       return;
     }
     else{
-      block.style.top = position + BLOCK_DROP_SPEED + "px";
+      levelLine.style.top = position + 1 + "px";
+      if(bottom >= playerTop && bottom <= playerBottom && !gameRactive.get('levelPassed')){
+        if(gameRactive.get('score') % gameRactive.get('divisor') == 0){
+          gameRactive.set('levelPassed', true);
+          gameRactive.set('divisor', gameRactive.get('divisor') + 1);
+          console.log('new divisor: ' + gameRactive.get('divisor'));
+          levelLine.style.backgroundColor = 'green';
+        }
+        else{
+          gameRactive.set('lost', true);
+        }
+      }
+    }
+  }
+  setTimeout(function(){
+    dropLine();
+  }, 7);
+}
+
+function dropBlock(index){
+  if(!gameRactive.get('paused')){
+    var block = document.getElementById("block-" + index);
+    // console.log(index);
+    if(block){
+      var position = block.style.top;
+      position = parseInt(position.substring(0,position.length-2));
+      // console.log(position);
+      if(position >= GAME_BOARD_HEIGHT){
+        var blocks = gameRactive.get('blocks');
+        var blockIndex = -1;
+        for(var i = 0; i < blocks.length; i++){
+          if(blocks[i].id == index){
+            blockIndex = i;
+          }
+        }
+        blocks.splice(blockIndex, 1);
+        return;
+      }
+      else{
+        block.style.top = position + BLOCK_DROP_SPEED + "px";
+      }
     }
   }
 
@@ -135,20 +192,47 @@ function dropBlock(index){
 }
 
 function handleMotion(){
-  var player = document.getElementById("player-block");
-  var position = player.style.left;
-  position = parseInt(position.substring(0,position.length-2));
-  // console.log(position);
-  var moving = gameRactive.get('moving');
-  var keyPressed = gameRactive.get('keydown');
+  if(gameRactive.get('lost')){
+    return;
+  }
+  if(!gameRactive.get('paused')){
+    var player = document.getElementById("player-block");
+    var position = player.style.left;
+    position = parseInt(position.substring(0,position.length-2));
+    // console.log(position);
+    var moving = gameRactive.get('moving');
+    var keyPressed = gameRactive.get('keydown');
 
-  if(position < 237 && DIRECTION[keyPressed] == 1 ||
-      position > -237 && DIRECTION[keyPressed] == -1){
-    player.style.left = position + MOVE_SPEED*(DIRECTION[keyPressed]) + "px";
+    if(position < 237 && DIRECTION[keyPressed] == 1 ||
+        position > -237 && DIRECTION[keyPressed] == -1){
+      player.style.left = position + MOVE_SPEED*(DIRECTION[keyPressed]) + "px";
+    }
   }
   setTimeout(function(){
     handleMotion();
   }, MOVE_REFRESH);
+}
+
+function resetGame(){
+  gameRactive.set('keydown', 'none');
+  gameRactive.set('moving', false);
+  gameRactive.set('score', 0);
+  gameRactive.set('divisor', 2);
+  gameRactive.set('blocks', []);
+  gameRactive.set('lost', false);
+  gameRactive.set('levelPassed', false);
+  gameRactive.set('paused', false);
+  gameRactive.set('levelBlockIndex', 0);
+
+  document.getElementById('player-block').style.left = '0';
+  document.getElementById('level').style.top = '-12px';
+  startGame();
+}
+
+function pauseGame(){
+  if(!gameRactive.get('lost')){
+    gameRactive.set('paused', !gameRactive.get('paused'));
+  }
 }
 
 $(document).ready(function(){
@@ -161,7 +245,19 @@ $(document).ready(function(){
       score: 0,
       divisor: 2,
       blocks: [],
-      blocknum: 0
+      blocknum: 0,
+      lost: false,
+      levelPassed: false,
+      paused: false,
+      levelBlockIndex: 0,
+      justOpened: true
+    }
+  });
+
+  $(document).keypress(function(event){
+    if(event.keyCode == 112 && !gameRactive.get('justOpened')){
+      console.log('pause/unpause');
+      pauseGame();
     }
   });
 
@@ -184,14 +280,79 @@ $(document).ready(function(){
     // console.log('ractive:' + gameRactive.get('keydown'));
   });
 
+  $("#retry").hover(function(){
+      var image = document.getElementById('retry-image');
+      image.width = '90';
+      image.height = '90';
+      image.style.marginTop = '0px';
+    },
+    function(){
+      var image = document.getElementById('retry-image');
+      image.width = '70';
+      image.height = '70';
+      image.style.marginTop = '10px';
+    });
+
+  $('#retry').click(function(){
+    resetGame();
+  });
+
+  $('#play-button').click(function(){
+    gameRactive.set('justOpened', false);
+    startGame();
+  });
+
+  $('#play-button').hover(function(){
+    var button = document.getElementById('play-button');
+    button.style.color = 'black';
+    button.style.backgroundColor = 'white';
+  },
+  function(){
+    var button = document.getElementById('play-button');
+    button.style.color = 'white';
+    button.style.backgroundColor = 'black';
+  });
+
+  $(window).focusout(function(event){
+    if(!gameRactive.get('paused') && !gameRactive.get('justOpened')){
+      pauseGame();
+    }
+  });
+
   gameRactive.observe('keydown', function(newValue, oldValue){
     // console.log(newValue);
     var moving = DIRECTION.hasOwnProperty(newValue);
     gameRactive.set('moving', moving);
   });
 
-  handleMotion();
-  // dropBlock();
-  checkCollisions();
-  runGame();
+  gameRactive.observe('lost', function(newValue, oldValue){
+    if(newValue){
+      console.log('YOU LOST');
+    }
+  });
+
+  gameRactive.observe('levelPassed', function(newValue, oldValue){
+    if(newValue){
+      console.log('YOU PASSED THE LEVEL');
+    }
+  });
+
+  gameRactive.observe('paused', function(newValue, oldValue){
+    if(newValue == true && oldValue == false){ // just paused
+      clearTimeout(levelTimer);
+    }
+    else if(newValue == false && oldValue == true){ // just unpaused
+      timeout = Math.random()*MAX_GEN_RATE;
+      if(timeout < MIN_GEN_RATE){
+        timeout += MIN_GEN_RATE;
+      }
+
+      timeout = timeout * 1000;
+      levelTimer = setTimeout(function(){
+        runLevel();
+      }, timeout);
+    }
+  });
+
+  // startGame();
 });

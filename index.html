@@ -12,17 +12,55 @@
       <div id="game-area"></div>
       <script id="template" type="type/ractive">
         <div id="game-board">
+          <div align="center" id="screen" style="{{lost || paused || justOpened ? '' : 'display:none;'}} opacity: {{justOpened ? '1.0' : '0.8'}}">
+            {{#if lost}}
+            <div id="lose-screen">
+              <div id="score-display-label">Your Score:</div>
+              <div id="score-display">{{score}}</div>
+              <div id="retry">
+                <img id="retry-image" src="retry.png" width="70" height="70">
+              </div>
+            </div>
+            {{/if}}
+            {{#if paused}}
+            <div id="pause-screen">
+              <div id="pause-label">Paused</div>
+            </div>
+            {{/if}}
+            {{#if justOpened}}
+            <div id="start-screen">
+              <div id="tutorial-header">Tutorial</div>
+              <div id="tutorial">
+                <div class="falling-block" style="display:inline-block; position:relative;text-align:center;">
+                  <div class="falling-block-text">+1</div>
+                </div>
+                <div style="display:inline-block; margin-left:20px;">Collect the blocks to increase your score.</div>
+
+                <div style="margin-top:20px;">At each checkpoint, your score will need to be
+                divisible by the denominator in the display below. If it is not divisible by that number, you lose.</div>
+                <div style="margin-top:20px;">The numerator below indicates your score. It will be <span style="color:green">green</span> if you are currently divisible.</div>
+
+                <div style="margin-top:20px;"> Collect wisely.</div>
+              </div>
+              <div id="play-button">Start Game</div>
+            </div>
+            {{/if}}
+          </div>
+          <div id="level" style="top:-12px;"></div>
           <div id="player-block" style="left:0px;"></div>
           {{#each blocks}}
           <div id="block-{{id}}" class="falling-block" style="top:-24px; left:0px;">
             <div class="falling-block-text">
-              +1
+              +{{value}}
             </div>
           </div>
           {{/each}}
         </div>
         <div id="buffer" align="center">
-          <div id="score" style="color:{{score%divisor == 0 ? 'green' : 'red'}}">{{score}}</div>
+          <div id="score">
+            <span style="color:{{score%divisor == 0 ? 'green' : 'red'}}">{{score}}</span>
+            <span> / {{divisor}}</span>
+          </div>
         </div>
       </script>
     </div>
