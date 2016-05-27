@@ -5,6 +5,11 @@ body {
               'Open-Light',
               sans-serif;
   background-color: #a89070;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none;   /* Chrome/Safari/Opera */
+  -khtml-user-select: none;    /* Konqueror */
+  -moz-user-select: none;      /* Firefox */
+  -ms-user-select: none;
 }
 
 #game-board {
@@ -48,6 +53,7 @@ body {
 
 #score {
   font-size:36px;
+  color:white;
   font-weight:600;
   padding-top:10px;
   -webkit-text-stroke: 1px white;
@@ -59,17 +65,53 @@ body {
   background-color:red;
 }
 
-#lose-screen{
+#screen{
   background-color:black;
   width:100%;
   height:100%;
-  opacity:0.8;
   border-radius:10px;
   position:absolute;
   z-index:999;
 }
 
-#display{
+#start-screen{
+  margin-top:70px;
+}
+
+#tutorial-header{
+  font-size:36px;
+  color:white;
+  margin-bottom: 20px;
+}
+
+#tutorial{
+  font-size: 18px;
+  color:white;
+  width: 400px;
+  text-align: left;
+}
+
+#play-button{
+  margin-top: 36px;
+  font-size:28px;
+  color:white;
+  /*background-color:white;*/
+  width:150px;
+  cursor:pointer;
+  border-radius:10px;
+  padding:10px;
+}
+
+#pause-screen{
+  margin-top:180px;
+}
+
+#pause-label{
+  font-size:40px;
+  color:white;
+}
+
+#lose-screen{
   margin-top:150px;
 }
 
