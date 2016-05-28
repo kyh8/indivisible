@@ -5,13 +5,24 @@ var DIRECTION = {
   68: 1 // 'D'
 }
 
+//http://www.december.com/html/spec/color1.html
+var COLORS = {
+  1:'gray',
+  2:'#EE7942', //sienna2
+  3:'#CD2626' //firebrick3
+}
+
 var COLLISION_REFRESH = 5;
-var BLOCK_DROP_REFRESH = 5;
+
 var BLOCK_DROP_SPEED = 1;
+var BLOCK_DROP_REFRESH = 5;
 var MOVE_SPEED = 1;
 var MOVE_REFRESH = 3;
+var LINE_DROP_RATE = 6;
+
 var MIN_GEN_RATE = 1;
 var MAX_GEN_RATE = 3;
+
 var LEVEL_GEN_NUM = 10; //blocks per level
 var GAME_BOARD_HEIGHT = 500;
 var PLAYER_SIZE = 25;
@@ -32,12 +43,13 @@ function runLevel(){
 
   var timeout = 5;
   if(!gameRactive.get('paused')){
-    timeout = Math.random()*MAX_GEN_RATE;
-    if(timeout < MIN_GEN_RATE){
-      timeout += MIN_GEN_RATE;
+    timeout = Math.random()*gameRactive.get('maxSpawnRate');
+    if(timeout < gameRactive.get('minSpawnRate')){
+      timeout = gameRactive.get('minSpawnRate');
     }
 
     timeout = timeout * 1000;
+    console.log('timeout: ' + timeout);
 
     var blocks = gameRactive.get('blocks');
     var blockIndex = gameRactive.get('blocknum');
@@ -55,8 +67,8 @@ function runLevel(){
 
     var index = gameRactive.get('levelBlockIndex');
     console.log('index:' + (index+1));
-
-    if(index == LEVEL_GEN_NUM-1){
+    console.log('blocks to spawn:', gameRactive.get('blocksToSpawn'));
+    if(index == gameRactive.get('blocksToSpawn')-1){
       console.log('NEW LEVEL!');
       dropLine();
       gameRactive.set('levelBlockIndex', 0);
@@ -147,7 +159,22 @@ function dropLine(){
         if(gameRactive.get('score') % gameRactive.get('divisor') == 0){
           gameRactive.set('levelPassed', true);
           gameRactive.set('divisor', gameRactive.get('divisor') + 1);
-          console.log('new divisor: ' + gameRactive.get('divisor'));
+
+          // LEVEL UP
+          var max = gameRactive.get('maxSpawnRate');
+          if(max > 1){
+            console.log('new max: ', max-0.2);
+            gameRactive.set('maxSpawnRate', max-0.2);
+          }
+          var min = gameRactive.get('minSpawnRate');
+          if(min > 0.5) {
+            console.log('new min: ', min-0.05);
+            gameRactive.set('minSpawnRate', min-0.05);
+          }
+          var toSpawn = gameRactive.get('blocksToSpawn') + gameRactive.get('divisor') - 2;
+          gameRactive.set('blocksToSpawn', toSpawn);
+          console.log('new blocks to spawn:', toSpawn);
+
           levelLine.style.backgroundColor = 'green';
         }
         else{
@@ -158,7 +185,7 @@ function dropLine(){
   }
   setTimeout(function(){
     dropLine();
-  }, 7);
+  }, LINE_DROP_RATE);
 }
 
 function dropBlock(index){
@@ -223,6 +250,9 @@ function resetGame(){
   gameRactive.set('levelPassed', false);
   gameRactive.set('paused', false);
   gameRactive.set('levelBlockIndex', 0);
+  gameRactive.set('blocksToSpawn', LEVEL_GEN_NUM);
+  gameRactive.set('minSpawnRate', MIN_GEN_RATE);
+  gameRactive.set('maxSpawnRate', MAX_GEN_RATE);
 
   document.getElementById('player-block').style.left = '0';
   document.getElementById('level').style.top = '-12px';
@@ -250,7 +280,10 @@ $(document).ready(function(){
       levelPassed: false,
       paused: false,
       levelBlockIndex: 0,
-      justOpened: true
+      justOpened: true,
+      blocksToSpawn: LEVEL_GEN_NUM,
+      minSpawnRate: MIN_GEN_RATE,
+      maxSpawnRate: MAX_GEN_RATE
     }
   });
 
@@ -304,13 +337,15 @@ $(document).ready(function(){
 
   $('#play-button').hover(function(){
     var button = document.getElementById('play-button');
-    button.style.color = 'black';
-    button.style.backgroundColor = 'white';
+    // button.style.color = 'black';
+    // button.style.backgroundColor = 'white';
+    button.style.borderColor='white';
   },
   function(){
     var button = document.getElementById('play-button');
-    button.style.color = 'white';
-    button.style.backgroundColor = 'black';
+    // button.style.color = 'white';
+    // button.style.backgroundColor = 'black';
+    button.style.borderColor='black';
   });
 
   $(window).focusout(function(event){
@@ -325,29 +360,32 @@ $(document).ready(function(){
     gameRactive.set('moving', moving);
   });
 
-  gameRactive.observe('lost', function(newValue, oldValue){
-    if(newValue){
-      console.log('YOU LOST');
-    }
-  });
-
-  gameRactive.observe('levelPassed', function(newValue, oldValue){
-    if(newValue){
-      console.log('YOU PASSED THE LEVEL');
-    }
-  });
+  //
+  // gameRactive.observe('lost', function(newValue, oldValue){
+  //   if(newValue){
+  //     console.log('YOU LOST');
+  //   }
+  // });
+  //
+  // gameRactive.observe('levelPassed', function(newValue, oldValue){
+  //   if(newValue){
+  //     console.log('YOU PASSED THE LEVEL');
+  //   }
+  // });
 
   gameRactive.observe('paused', function(newValue, oldValue){
     if(newValue == true && oldValue == false){ // just paused
       clearTimeout(levelTimer);
     }
     else if(newValue == false && oldValue == true){ // just unpaused
-      timeout = Math.random()*MAX_GEN_RATE;
-      if(timeout < MIN_GEN_RATE){
-        timeout += MIN_GEN_RATE;
+      timeout = Math.random()*gameRactive.get('maxSpawnRate');
+      if(timeout < gameRactive.get('minSpawnRate')){
+        timeout = gameRactive.get('minSpawnRate');
       }
 
       timeout = timeout * 1000;
+      console.log('timeout: ' + timeout);
+
       levelTimer = setTimeout(function(){
         runLevel();
       }, timeout);
