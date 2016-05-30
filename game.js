@@ -12,20 +12,42 @@ var COLORS = {
   3:'#CD2626' //firebrick3
 }
 
+var BLOCK_SPEEDS = {
+  1:5,
+  2:4,
+  3:3
+}
+
+var INIT_SPAWN_PROB = {
+  2:0,
+  3:0
+}
+
 var COLLISION_REFRESH = 5;
 
 var BLOCK_DROP_SPEED = 1;
 var BLOCK_DROP_REFRESH = 5;
 var MOVE_SPEED = 1;
-var MOVE_REFRESH = 3;
+var MOVE_REFRESH = 6;
 var LINE_DROP_RATE = 6;
 
 var MIN_GEN_RATE = 1;
 var MAX_GEN_RATE = 3;
 
 var LEVEL_GEN_NUM = 10; //blocks per level
-var GAME_BOARD_HEIGHT = 500;
-var PLAYER_SIZE = 25;
+var GAME_BOARD_SIZE = 500;
+var PLAYER_SIZE = 40;
+var BLOCK_SIZE = 50;
+
+var MAX_RATE_2 = 0.4;
+var MAX_RATE_3 = 0.2;
+var LEVEL_UP_2 = 0.04;
+var LEVEL_UP_3 = 0.02;
+
+var MIN_GEN_FLOOR = 0.5;
+var MAX_GEN_FLOOR = 1;
+var MIN_LEVEL_UP_DIFF = 0.05;
+var MAX_LEVEL_UP_DIFF = 0.2;
 
 var gameRactive;
 var levelTimer;
@@ -53,17 +75,34 @@ function runLevel(){
 
     var blocks = gameRactive.get('blocks');
     var blockIndex = gameRactive.get('blocknum');
+
+    var value = 1;
+    var is2 = Math.random();
+    var is3 = Math.random();
+    var probs = gameRactive.get('spawnProb');
+
+    console.log('is2:',is2,'vs',probs[2]);
+    console.log('is3',is3,'vs',probs[3]);
+    if(is3 < probs[3]){
+      value = 3;
+    }
+    else if(is2 < probs[2]){
+      value = 2;
+    }
+
+    console.log('spawned:',value);
+
     blocks.push({
       'id': blockIndex,
-      'value': 1
+      'value': value
     });
     // console.log(blocks);
     // console.log('index: ' + blockIndex);
     gameRactive.set('blocknum', blockIndex+1);
     var blockElement = document.getElementById("block-"+blockIndex);
-    var offset = Math.floor(Math.random() * 460);
+    var offset = Math.floor(Math.random() * (GAME_BOARD_SIZE - BLOCK_SIZE));
     blockElement.style.left = offset + "px";
-    dropBlock(blockIndex);
+    dropBlock(blockIndex, value);
 
     var index = gameRactive.get('levelBlockIndex');
     console.log('index:' + (index+1));
@@ -117,7 +156,7 @@ function checkCollisions(){
             (pt > bt && pt < bb || pb > bt && pb < bb)){
           // console.log("COLLIDE");
           // $('#block-1').fadeOut(100);
-          gameRactive.set('score', gameRactive.get('score') + 1);
+          gameRactive.set('score', gameRactive.get('score') + gameBlocks[i].value);
           blocks.splice(i, 1);
 
           $('#player-block').animate({width:(PLAYER_SIZE + 5) + "px", height:(PLAYER_SIZE + 5) + "px"},50,"linear",function(){
@@ -147,7 +186,7 @@ function dropLine(){
     var playerTop = playerBlock.top;
     var playerBottom = playerBlock.bottom;
 
-    if(position >= GAME_BOARD_HEIGHT){
+    if(position >= GAME_BOARD_SIZE){
       levelLine.style.top = '-12px';
       gameRactive.set('levelPassed', false);
       levelLine.style.backgroundColor = 'red';
@@ -162,18 +201,26 @@ function dropLine(){
 
           // LEVEL UP
           var max = gameRactive.get('maxSpawnRate');
-          if(max > 1){
-            console.log('new max: ', max-0.2);
-            gameRactive.set('maxSpawnRate', max-0.2);
+          if(max > MAX_GEN_FLOOR){
+            console.log('new max: ', max-MAX_LEVEL_UP_DIFF);
+            gameRactive.set('maxSpawnRate', max-MAX_LEVEL_UP_DIFF);
           }
           var min = gameRactive.get('minSpawnRate');
-          if(min > 0.5) {
-            console.log('new min: ', min-0.05);
-            gameRactive.set('minSpawnRate', min-0.05);
+          if(min > MIN_GEN_FLOOR) {
+            console.log('new min: ', min-MIN_LEVEL_UP_DIFF);
+            gameRactive.set('minSpawnRate', min-MIN_LEVEL_UP_DIFF);
           }
           var toSpawn = gameRactive.get('blocksToSpawn') + gameRactive.get('divisor') - 2;
           gameRactive.set('blocksToSpawn', toSpawn);
+
           console.log('new blocks to spawn:', toSpawn);
+          var probs = gameRactive.get('spawnProb');
+          if(probs[2] < MAX_RATE_2){
+            probs[2] += LEVEL_UP_2;
+          }
+          if(probs[3] < MAX_RATE_3){
+            probs[3] += LEVEL_UP_3;
+          }
 
           levelLine.style.backgroundColor = 'green';
         }
@@ -188,7 +235,7 @@ function dropLine(){
   }, LINE_DROP_RATE);
 }
 
-function dropBlock(index){
+function dropBlock(index, value){
   if(!gameRactive.get('paused')){
     var block = document.getElementById("block-" + index);
     // console.log(index);
@@ -196,12 +243,13 @@ function dropBlock(index){
       var position = block.style.top;
       position = parseInt(position.substring(0,position.length-2));
       // console.log(position);
-      if(position >= GAME_BOARD_HEIGHT){
+      if(position >= GAME_BOARD_SIZE){
         var blocks = gameRactive.get('blocks');
         var blockIndex = -1;
         for(var i = 0; i < blocks.length; i++){
           if(blocks[i].id == index){
             blockIndex = i;
+            break;
           }
         }
         blocks.splice(blockIndex, 1);
@@ -213,9 +261,11 @@ function dropBlock(index){
     }
   }
 
+  var dropRate = BLOCK_SPEEDS[value];
+
   setTimeout(function(){
-    dropBlock(index);
-  }, BLOCK_DROP_REFRESH);
+    dropBlock(index, value);
+  }, dropRate);
 }
 
 function handleMotion(){
@@ -230,8 +280,8 @@ function handleMotion(){
     var moving = gameRactive.get('moving');
     var keyPressed = gameRactive.get('keydown');
 
-    if(position < 237 && DIRECTION[keyPressed] == 1 ||
-        position > -237 && DIRECTION[keyPressed] == -1){
+    if(position < (GAME_BOARD_SIZE - PLAYER_SIZE)/2 && DIRECTION[keyPressed] == 1 ||
+        position > -1*((GAME_BOARD_SIZE - PLAYER_SIZE)/2) && DIRECTION[keyPressed] == -1){
       player.style.left = position + MOVE_SPEED*(DIRECTION[keyPressed]) + "px";
     }
   }
@@ -253,6 +303,7 @@ function resetGame(){
   gameRactive.set('blocksToSpawn', LEVEL_GEN_NUM);
   gameRactive.set('minSpawnRate', MIN_GEN_RATE);
   gameRactive.set('maxSpawnRate', MAX_GEN_RATE);
+  gameRactive.set('spawnProb', {2:0,3:0});
 
   document.getElementById('player-block').style.left = '0';
   document.getElementById('level').style.top = '-12px';
@@ -283,7 +334,9 @@ $(document).ready(function(){
       justOpened: true,
       blocksToSpawn: LEVEL_GEN_NUM,
       minSpawnRate: MIN_GEN_RATE,
-      maxSpawnRate: MAX_GEN_RATE
+      maxSpawnRate: MAX_GEN_RATE,
+      spawnProb: {2:0, 3:0},
+      colors:COLORS
     }
   });
 
@@ -360,7 +413,6 @@ $(document).ready(function(){
     gameRactive.set('moving', moving);
   });
 
-  //
   // gameRactive.observe('lost', function(newValue, oldValue){
   //   if(newValue){
   //     console.log('YOU LOST');
