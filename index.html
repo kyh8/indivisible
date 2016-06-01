@@ -22,6 +22,7 @@
             </div>
             <div id="pause-screen" style="{{paused ? '' : 'display:none'}}">
               <div id="pause-label">Paused</div>
+              <div id="resume" on-click="resume">Resume</div>
             </div>
             <div id="start-screen" style="{{justOpened ? '' : 'display:none'}}">
               <div id="tutorial-header">Tutorial</div>
@@ -30,11 +31,9 @@
                   <div class="falling-block-text">+1</div>
                 </div>
                 <div style="display:inline-block; margin-left:20px;">Collect the blocks to increase your score.</div>
-
                 <div style="margin-top:20px;">At each checkpoint, your score will need to be
                 divisible by the denominator in the display below. If it is not divisible by that number, you lose.</div>
                 <div style="margin-top:20px;">The numerator below indicates your score. It will be <span style="color:green">green</span> if you are currently divisible.</div>
-
                 <div style="margin-top:20px;"> Collect wisely.</div>
               </div>
               <div id="play-button">Start Game</div>

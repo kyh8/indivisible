@@ -36,8 +36,8 @@ var MAX_GEN_RATE = 3;
 
 var LEVEL_GEN_NUM = 10; //blocks per level
 var GAME_BOARD_SIZE = 500;
-var PLAYER_SIZE = 40;
-var BLOCK_SIZE = 50;
+var PLAYER_SIZE = 30;
+var BLOCK_SIZE = 30;
 
 var MAX_RATE_2 = 0.4;
 var MAX_RATE_3 = 0.2;
@@ -48,6 +48,8 @@ var MIN_GEN_FLOOR = 0.5;
 var MAX_GEN_FLOOR = 1;
 var MIN_LEVEL_UP_DIFF = 0.05;
 var MAX_LEVEL_UP_DIFF = 0.2;
+
+var startPressed = false;
 
 var gameRactive;
 var levelTimer;
@@ -383,9 +385,28 @@ $(document).ready(function(){
     resetGame();
   });
 
+  $('#play-button').mousedown(function(){
+    startPressed = true;
+    var button = document.getElementById('play-button');
+    button.style.color = 'black';
+    button.style.backgroundColor = 'white';
+  });
+
+  $(document).mouseup(function(){
+    console.log('wat');
+    if(startPressed){
+      var button = document.getElementById('play-button');
+      button.style.color = 'white';
+      button.style.backgroundColor = 'black';
+    }
+  });
+
   $('#play-button').click(function(){
-    gameRactive.set('justOpened', false);
-    startGame();
+    console.log('what');
+    $('#screen').fadeOut(1000, function(){
+      gameRactive.set('justOpened', false);
+      startGame();
+    });
   });
 
   $('#play-button').hover(function(){
@@ -401,10 +422,25 @@ $(document).ready(function(){
     button.style.borderColor='black';
   });
 
+  $('#resume').hover(function(){
+    var resume = document.getElementById('resume');
+    resume.style.fontSize='18px';
+    resume.style.marginTop='18px';
+  },
+  function(){
+    var resume = document.getElementById('resume');
+    resume.style.fontSize='16px';
+    resume.style.marginTop='20px';
+  });
+
   $(window).focusout(function(event){
     if(!gameRactive.get('paused') && !gameRactive.get('justOpened')){
       pauseGame();
     }
+  });
+
+  gameRactive.on('resume', function(){
+    pauseGame();
   });
 
   gameRactive.observe('keydown', function(newValue, oldValue){
